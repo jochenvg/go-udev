@@ -1,6 +1,5 @@
 // +build linux
 
-// Package udev provides a cgo wrapper around the libudev C library
 package udev
 
 import (

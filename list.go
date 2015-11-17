@@ -1,6 +1,5 @@
 // +build linux,cgo
 
-// Package udev provides a cgo wrapper around the libudev C library
 package udev
 
 /*
