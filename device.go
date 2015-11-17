@@ -74,7 +74,7 @@ func (d *Device) Subsystem() string {
 	return C.GoString(C.udev_device_get_subsystem(d.ptr))
 }
 
-// Devtype returns tthe devtype string of the udev device.
+// Devtype returns the devtype string of the udev device.
 func (d *Device) Devtype() string {
 	d.lock()
 	defer d.unlock()
