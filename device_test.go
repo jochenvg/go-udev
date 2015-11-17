@@ -20,13 +20,15 @@ func TestDeviceZero(t *testing.T) {
 	if d.Devnode() != "/dev/zero" {
 		t.Fail()
 	}
-	if d.PropertyValue("SUBSYSTEM") != "mem" {
+	p, e := d.PropertyValue("SUBSYSTEM")
+	if e != nil || p != "mem" {
 		t.Fail()
 	}
 	if !d.IsInitialized() {
 		t.Fail()
 	}
-	if d.SysattrValue("subsystem") != "mem" {
+	s, e := d.SysattrValue("subsystem")
+	if e != nil || s != "mem" {
 		t.Fail()
 	}
 	// Device should have Properties
@@ -53,13 +55,15 @@ func TestDeviceRandom(t *testing.T) {
 	if d.Devnode() != "/dev/random" {
 		t.Fail()
 	}
-	if d.PropertyValue("SUBSYSTEM") != "mem" {
+	p, e := d.PropertyValue("SUBSYSTEM")
+	if e != nil || p != "mem" {
 		t.Fail()
 	}
 	if !d.IsInitialized() {
 		t.Fail()
 	}
-	if d.SysattrValue("subsystem") != "mem" {
+	s, e := d.SysattrValue("subsystem")
+	if e != nil || s != "mem" {
 		t.Fail()
 	}
 	// Device should have Properties

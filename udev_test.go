@@ -14,7 +14,7 @@ func TestNewDeviceFromDevnum(t *testing.T) {
 	if d.Devnum().Minor() != 8 {
 		t.Fail()
 	}
-	if d.DevPath() != "/devices/virtual/mem/random" {
+	if d.Devpath() != "/devices/virtual/mem/random" {
 		t.Fail()
 	}
 }
@@ -28,7 +28,7 @@ func TestNewDeviceFromDevnumNoClose(t *testing.T) {
 	if d.Devnum().Minor() != 8 {
 		t.Fail()
 	}
-	if d.DevPath() != "/devices/virtual/mem/random" {
+	if d.Devpath() != "/devices/virtual/mem/random" {
 		t.Fail()
 	}
 }
@@ -42,7 +42,7 @@ func TestNewDeviceFromSyspath(t *testing.T) {
 	if d.Devnum().Minor() != 8 {
 		t.Fail()
 	}
-	if d.DevPath() != "/devices/virtual/mem/random" {
+	if d.Devpath() != "/devices/virtual/mem/random" {
 		t.Fail()
 	}
 }
@@ -56,7 +56,7 @@ func TestNewDeviceFromSubsystemSysname(t *testing.T) {
 	if d.Devnum().Minor() != 8 {
 		t.Fail()
 	}
-	if d.DevPath() != "/devices/virtual/mem/random" {
+	if d.Devpath() != "/devices/virtual/mem/random" {
 		t.Fail()
 	}
 }
@@ -70,7 +70,7 @@ func TestNewDeviceFromDeviceID(t *testing.T) {
 	if d.Devnum().Minor() != 8 {
 		t.Fail()
 	}
-	if d.DevPath() != "/devices/virtual/mem/random" {
+	if d.Devpath() != "/devices/virtual/mem/random" {
 		t.Fail()
 	}
 }

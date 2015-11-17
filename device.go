@@ -13,27 +13,28 @@ package udev
 import "C"
 import "errors"
 
-// Private structure wrapping a udev device object
-type device struct {
+// Device wraps a libudev device object
+type Device struct {
 	ptr *C.struct_udev_device
 	u   *Udev
 }
 
 // Lock the udev context
-func (d *device) lock() {
+func (d *Device) lock() {
 	d.u.m.Lock()
 }
 
 // Unlock the udev context
-func (d *device) unlock() {
+func (d *Device) unlock() {
 	d.u.m.Unlock()
 }
 
-func deviceUnref(d *device) {
+func deviceUnref(d *Device) {
 	C.udev_device_unref(d.ptr)
 }
 
-func (d *device) Parent() *device {
+// Parent returns the parent Device, or nil if the receiver has no parent Device
+func (d *Device) Parent() *Device {
 	d.lock()
 	defer d.unlock()
 	ptr := C.udev_device_get_parent(d.ptr)
@@ -43,7 +44,9 @@ func (d *device) Parent() *device {
 	return d.u.newDevice(ptr)
 }
 
-func (d *device) ParentWithSubsystemDevtype(subsystem, devtype string) *device {
+// ParentWithSubsystemDevtype returns the parent Device with the given subsystem and devtype,
+// or nil if the receiver has no such parent device
+func (d *Device) ParentWithSubsystemDevtype(subsystem, devtype string) *Device {
 	d.lock()
 	defer d.unlock()
 	ss, dt := C.CString(subsystem), C.CString(devtype)
@@ -56,49 +59,66 @@ func (d *device) ParentWithSubsystemDevtype(subsystem, devtype string) *device {
 	return d.u.newDevice(ptr)
 }
 
-func (d *device) DevPath() string {
+// Devpath returns the kernel devpath value of the udev device.
+// The path does not contain the sys mount point, and starts with a '/'.
+func (d *Device) Devpath() string {
 	d.lock()
 	defer d.unlock()
 	return C.GoString(C.udev_device_get_devpath(d.ptr))
 }
 
-func (d *device) Subsystem() string {
+// Subsystem returns the subsystem string of the udev device.
+// The string does not contain any "/".
+func (d *Device) Subsystem() string {
 	d.lock()
 	defer d.unlock()
 	return C.GoString(C.udev_device_get_subsystem(d.ptr))
 }
 
-func (d *device) DevType() string {
+// Devtype returns tthe devtype string of the udev device.
+func (d *Device) Devtype() string {
 	d.lock()
 	defer d.unlock()
 	return C.GoString(C.udev_device_get_devtype(d.ptr))
 }
 
-func (d *device) Syspath() string {
+// Syspath returns the sys path of the udev device.
+// The path is an absolute path and starts with the sys mount point.
+func (d *Device) Syspath() string {
 	d.lock()
 	defer d.unlock()
 	return C.GoString(C.udev_device_get_syspath(d.ptr))
 }
 
-func (d *device) Sysnum() string {
+// Sysnum returns the trailing number of of the device name
+func (d *Device) Sysnum() string {
 	d.lock()
 	defer d.unlock()
 	return C.GoString(C.udev_device_get_sysnum(d.ptr))
 }
 
-func (d *device) Devnode() string {
+// Devnode returns the device node file name belonging to the udev device.
+// The path is an absolute path, and starts with the device directory.
+func (d *Device) Devnode() string {
 	d.lock()
 	defer d.unlock()
 	return C.GoString(C.udev_device_get_devnode(d.ptr))
 }
 
-func (d *device) IsInitialized() bool {
+// IsInitialized checks if udev has already handled the device and has set up
+// device node permissions and context, or has renamed a network device.
+//
+// This is only implemented for devices with a device node or network interfaces.
+// All other devices return 1 here.
+func (d *Device) IsInitialized() bool {
 	d.lock()
 	defer d.unlock()
 	return C.udev_device_get_is_initialized(d.ptr) != 0
 }
 
-func (d *device) DevLinks() (r Set) {
+// Devlinks retrieves the Set of device links pointing to the device file of the udev device.
+// The path is an absolute path, and starts with the device directory.
+func (d *Device) Devlinks() (r Set) {
 	d.lock()
 	defer d.unlock()
 	r = make(Set)
@@ -106,7 +126,8 @@ func (d *device) DevLinks() (r Set) {
 	return
 }
 
-func (d *device) Properties() (r Map) {
+// Properties retrieves a Map of key/value device properties of the udev device.
+func (d *Device) Properties() (r Map) {
 	d.lock()
 	defer d.unlock()
 	r = make(Map)
@@ -114,7 +135,8 @@ func (d *device) Properties() (r Map) {
 	return
 }
 
-func (d *device) Tags() (r Set) {
+// Tags retrieves the Set of tags attached to the udev device.
+func (d *Device) Tags() (r Set) {
 	d.lock()
 	defer d.unlock()
 	r = make(Set)
@@ -122,7 +144,8 @@ func (d *device) Tags() (r Set) {
 	return
 }
 
-func (d *device) Sysattrs() (r Set) {
+// Sysattrs returns a Set with the  systems attributes of the receiver
+func (d *Device) Sysattrs() (r Set) {
 	d.lock()
 	defer d.unlock()
 	r = make(Set)
@@ -130,53 +153,98 @@ func (d *device) Sysattrs() (r Set) {
 	return
 }
 
-func (d *device) PropertyValue(key string) string {
+// PropertyValue retrieves the value of a device property
+func (d *Device) PropertyValue(key string) (s string, err error) {
 	d.lock()
 	defer d.unlock()
 	k := C.CString(key)
 	defer freeCharPtr(k)
-	return C.GoString(C.udev_device_get_property_value(d.ptr, k))
+	cptr := C.udev_device_get_property_value(d.ptr, k)
+	if cptr == nil {
+		err = errors.New("udev: udev_device_get_property_value no such property")
+	} else {
+		s = C.GoString(cptr)
+	}
+	return
 }
 
-func (d *device) Driver() string {
+// Driver returns the driver for the receiver
+func (d *Device) Driver() (s string, err error) {
 	d.lock()
 	defer d.unlock()
-	return C.GoString(C.udev_device_get_driver(d.ptr))
+	cptr := C.udev_device_get_driver(d.ptr)
+	if cptr == nil {
+		err = errors.New("udev: udev_device_get_driver no driver")
+	} else {
+		s = C.GoString(cptr)
+	}
+	return
 }
 
-func (d *device) Devnum() Devnum {
+// Devnum returns the device major/minor number.
+func (d *Device) Devnum() Devnum {
 	d.lock()
 	defer d.unlock()
 	return Devnum{C.udev_device_get_devnum(d.ptr)}
 }
 
-func (d *device) Action() string {
+// Action returns the action for the event.
+// This is only valid if the device was received through a monitor.
+// Devices read from sys do not have an action string.
+// Usual actions are: add, remove, change, online, offline.
+func (d *Device) Action() (s string, err error) {
 	d.lock()
 	defer d.unlock()
-	return C.GoString(C.udev_device_get_action(d.ptr))
+	cptr := C.udev_device_get_action(d.ptr)
+	if cptr == nil {
+		err = errors.New("udev: udev_device_get_action no action")
+	} else {
+		s = C.GoString(cptr)
+	}
+	return
 }
 
-func (d *device) Seqnum() uint64 {
+// Seqnum returns the sequence number of the event.
+// This is only valid if the device was received through a monitor.
+// Devices read from sys do not have a sequence number.
+func (d *Device) Seqnum() (s uint64, err error) {
 	d.lock()
 	defer d.unlock()
-	return uint64(C.udev_device_get_seqnum(d.ptr))
+	s = uint64(C.udev_device_get_seqnum(d.ptr))
+	if s == 0 {
+		err = errors.New("udev: udev_device_get_seqnum no sequence number")
+	}
+	return
 }
 
-func (d *device) UsecSinceInitialized() uint64 {
+// UsecSinceInitialized returns the number of microseconds passed since udev set up the device for the first time.
+// This is only implemented for devices with need to store properties in the udev database.
+// All other devices return 0 here.
+func (d *Device) UsecSinceInitialized() uint64 {
 	d.lock()
 	defer d.unlock()
 	return uint64(C.udev_device_get_usec_since_initialized(d.ptr))
 }
 
-func (d *device) SysattrValue(sysattr string) string {
+// SysattrValue retrieves the content of a sys attribute file, and returns an error if there is no sys attribute value.
+// The retrieved value is cached in the device.
+// Repeated calls will return the same value and not open the attribute again.
+func (d *Device) SysattrValue(sysattr string) (str string, err error) {
 	d.lock()
 	defer d.unlock()
 	s := C.CString(sysattr)
 	defer freeCharPtr(s)
-	return C.GoString(C.udev_device_get_sysattr_value(d.ptr, s))
+	cptr := C.udev_device_get_sysattr_value(d.ptr, s)
+	if cptr == nil {
+		err = errors.New("udev: udev_device_get_sysattr_value no sysattr")
+	} else {
+		str = C.GoString(cptr)
+	}
+	return
 }
 
-func (d *device) SetSysattrValue(sysattr, value string) (err error) {
+// SetSysattrValue sets the content of a sys attribute file, and returns an error if this fails.
+func (d *Device) SetSysattrValue(sysattr, value string) (err error) {
 	d.lock()
 	defer d.unlock()
 	sa, val := C.CString(sysattr), C.CString(value)
@@ -188,7 +256,8 @@ func (d *device) SetSysattrValue(sysattr, value string) (err error) {
 	return
 }
 
-func (d *device) HasTag(tag string) bool {
+// HasTag checks if the udev device has the tag specified
+func (d *Device) HasTag(tag string) bool {
 	d.lock()
 	defer d.unlock()
 	t := C.CString(tag)

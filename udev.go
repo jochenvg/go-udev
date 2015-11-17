@@ -50,13 +50,13 @@ func (u *Udev) unlock() {
 // The device is also added t the devices map in the udev context.
 // The agrument ptr is a pointer to the underlying C udev_device structure.
 // The function returns nil if the pointer passed is NULL.
-func (u *Udev) newDevice(ptr *C.struct_udev_device) (d *device) {
+func (u *Udev) newDevice(ptr *C.struct_udev_device) (d *Device) {
 	// If passed a NULL pointer, return nil
 	if ptr == nil {
 		return nil
 	}
 	// Create a new device object
-	d = &device{
+	d = &Device{
 		ptr: ptr,
 		u:   u,
 	}
@@ -69,13 +69,13 @@ func (u *Udev) newDevice(ptr *C.struct_udev_device) (d *device) {
 // The monitor is also added t the monitors map in the udev context.
 // The agrument ptr is a pointer to the underlying C udev_monitor structure.
 // The function returns nil if the pointer passed is NULL.
-func (u *Udev) newMonitor(ptr *C.struct_udev_monitor) (m *monitor) {
+func (u *Udev) newMonitor(ptr *C.struct_udev_monitor) (m *Monitor) {
 	// If passed a NULL pointer, return nil
 	if ptr == nil {
 		return nil
 	}
 	// Create a new device object
-	m = &monitor{
+	m = &Monitor{
 		ptr: ptr,
 		u:   u,
 	}
@@ -84,13 +84,13 @@ func (u *Udev) newMonitor(ptr *C.struct_udev_monitor) (m *monitor) {
 	return
 }
 
-func (u *Udev) newEnumerate(ptr *C.struct_udev_enumerate) (e *enumerate) {
+func (u *Udev) newEnumerate(ptr *C.struct_udev_enumerate) (e *Enumerate) {
 	// If passed a NULL pointer, return nil
 	if ptr == nil {
 		return nil
 	}
 	// Create a new device object
-	e = &enumerate{
+	e = &Enumerate{
 		ptr: ptr,
 		u:   u,
 	}
@@ -101,7 +101,7 @@ func (u *Udev) newEnumerate(ptr *C.struct_udev_enumerate) (e *enumerate) {
 
 // NewDeviceFromSyspath returns a pointer to a new device identified by its syspath, and nil on error
 // The device is identified by the syspath argument
-func (u *Udev) NewDeviceFromSyspath(syspath string) *device {
+func (u *Udev) NewDeviceFromSyspath(syspath string) *Device {
 	// Lock the udev context
 	u.lock()
 	defer u.unlock()
@@ -113,14 +113,14 @@ func (u *Udev) NewDeviceFromSyspath(syspath string) *device {
 }
 
 // NewDeviceFromDevnum returns a pointer to a new device identified by its Devnum, and nil on error
-func (u *Udev) NewDeviceFromDevnum(t DeviceType, n Devnum) *device {
+func (u *Udev) NewDeviceFromDevnum(t DeviceType, n Devnum) *Device {
 	u.lock()
 	defer u.unlock()
 	return u.newDevice(C.udev_device_new_from_devnum(u.ptr, C.char(t), n.d))
 }
 
 // NewDeviceFromSubsystemSysname returns a pointer to a new device identified by its subystem and sysname, and nil on error
-func (u *Udev) NewDeviceFromSubsystemSysname(subsystem, sysname string) *device {
+func (u *Udev) NewDeviceFromSubsystemSysname(subsystem, sysname string) *Device {
 	u.lock()
 	defer u.unlock()
 	ss, sn := C.CString(subsystem), C.CString(sysname)
@@ -130,7 +130,7 @@ func (u *Udev) NewDeviceFromSubsystemSysname(subsystem, sysname string) *device 
 }
 
 // NewDeviceFromDeviceID returns a pointer to a new device identified by its device id, and nil on error
-func (u *Udev) NewDeviceFromDeviceID(id string) *device {
+func (u *Udev) NewDeviceFromDeviceID(id string) *Device {
 	u.lock()
 	defer u.unlock()
 	i := C.CString(id)
@@ -139,14 +139,14 @@ func (u *Udev) NewDeviceFromDeviceID(id string) *device {
 }
 
 // NewEnumerate returns a pointer to a new enumerate, and nil on error
-func (u *Udev) NewEnumerate() *enumerate {
+func (u *Udev) NewEnumerate() *Enumerate {
 	u.lock()
 	defer u.unlock()
 	return u.newEnumerate(C.udev_enumerate_new(u.ptr))
 }
 
 // NewMonitorFromNetlink returns a pointer to a new monitor listening to a NetLink socket, and nil on error
-func (u *Udev) NewMonitorFromNetlink(name string) *monitor {
+func (u *Udev) NewMonitorFromNetlink(name string) *Monitor {
 	u.lock()
 	defer u.unlock()
 	n := C.CString(name)
@@ -156,7 +156,7 @@ func (u *Udev) NewMonitorFromNetlink(name string) *monitor {
 
 /*
 // NewMonitorFromSocket returns a pointer to a new monitor listening to the specified socket, and nil on error
-func (u *Udev) NewMonitorFromSocket(socketPath string) *monitor {
+func (u *Udev) NewMonitorFromSocket(socketPath string) *Monitor {
 	u.lock()
 	defer u.unlock()
 	s := C.CString(socketPath)

@@ -14,27 +14,29 @@ import "C"
 
 import "errors"
 
-// Private structure wrapping a udev enumerate object
-type enumerate struct {
+// Enumerate is an opaque struct wrapping a udev enumerate object.
+type Enumerate struct {
 	ptr *C.struct_udev_enumerate
 	u   *Udev
 }
 
 // Lock the udev context
-func (e *enumerate) lock() {
+func (e *Enumerate) lock() {
 	e.u.m.Lock()
 }
 
 // Unlock the udev context
-func (e *enumerate) unlock() {
+func (e *Enumerate) unlock() {
 	e.u.m.Unlock()
 }
 
-func enumerateUnref(e *enumerate) {
+// Unref the Enumerate object
+func enumerateUnref(e *Enumerate) {
 	C.udev_enumerate_unref(e.ptr)
 }
 
-func (e *enumerate) AddMatchSubsystem(subsystem string) (err error) {
+// AddMatchSubsystem adds a filter for a subsystem of the device to include in the list.
+func (e *Enumerate) AddMatchSubsystem(subsystem string) (err error) {
 	e.lock()
 	defer e.unlock()
 	s := C.CString(subsystem)
@@ -45,7 +47,8 @@ func (e *enumerate) AddMatchSubsystem(subsystem string) (err error) {
 	return
 }
 
-func (e *enumerate) AddNomatchSubsystem(subsystem string) (err error) {
+// AddNomatchSubsystem adds a filter for a subsystem of the device to exclude from the list.
+func (e *Enumerate) AddNomatchSubsystem(subsystem string) (err error) {
 	e.lock()
 	defer e.unlock()
 	s := C.CString(subsystem)
@@ -56,7 +59,8 @@ func (e *enumerate) AddNomatchSubsystem(subsystem string) (err error) {
 	return
 }
 
-func (e *enumerate) AddMatchSysattr(sysattr, value string) (err error) {
+// AddMatchSysattr adds a filter for a sys attribute at the device to include in the list.
+func (e *Enumerate) AddMatchSysattr(sysattr, value string) (err error) {
 	e.lock()
 	defer e.unlock()
 	s, v := C.CString(sysattr), C.CString(value)
@@ -68,7 +72,8 @@ func (e *enumerate) AddMatchSysattr(sysattr, value string) (err error) {
 	return
 }
 
-func (e *enumerate) AddNomatchSysattr(sysattr, value string) (err error) {
+// AddNomatchSysattr adds a filter for a sys attribute at the device to exclude from the list.
+func (e *Enumerate) AddNomatchSysattr(sysattr, value string) (err error) {
 	e.lock()
 	defer e.unlock()
 	s, v := C.CString(sysattr), C.CString(value)
@@ -80,7 +85,8 @@ func (e *enumerate) AddNomatchSysattr(sysattr, value string) (err error) {
 	return
 }
 
-func (e *enumerate) AddMatchProperty(property, value string) (err error) {
+// AddMatchProperty adds a filter for a property of the device to include in the list.
+func (e *Enumerate) AddMatchProperty(property, value string) (err error) {
 	e.lock()
 	defer e.unlock()
 	p, v := C.CString(property), C.CString(value)
@@ -92,7 +98,8 @@ func (e *enumerate) AddMatchProperty(property, value string) (err error) {
 	return
 }
 
-func (e *enumerate) AddMatchSysname(sysname string) (err error) {
+// AddMatchSysname adds a filter for the name of the device to include in the list.
+func (e *Enumerate) AddMatchSysname(sysname string) (err error) {
 	e.lock()
 	defer e.unlock()
 	s := C.CString(sysname)
@@ -103,7 +110,8 @@ func (e *enumerate) AddMatchSysname(sysname string) (err error) {
 	return
 }
 
-func (e *enumerate) AddMatchTag(tag string) (err error) {
+// AddMatchTag adds a filter for a tag of the device to include in the list.
+func (e *Enumerate) AddMatchTag(tag string) (err error) {
 	e.lock()
 	defer e.unlock()
 	t := C.CString(tag)
@@ -114,7 +122,8 @@ func (e *enumerate) AddMatchTag(tag string) (err error) {
 	return
 }
 
-func (e *enumerate) AddMatchParent(parent *device) (err error) {
+// AddMatchParent adds a filter for a parent Device to include in the list.
+func (e *Enumerate) AddMatchParent(parent *Device) (err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_add_match_parent(e.ptr, parent.ptr) != 0 {
@@ -123,7 +132,12 @@ func (e *enumerate) AddMatchParent(parent *device) (err error) {
 	return
 }
 
-func (e *enumerate) AddMatchIsInitialized() (err error) {
+// AddMatchIsInitialized adds a filter matching only devices which udev has set up already.
+// This makes sure, that the device node permissions and context are properly set and that network devices are fully renamed.
+// Usually, devices which are found in the kernel but not already handled by udev, have still pending events.
+// Services should subscribe to monitor events and wait for these devices to become ready, instead of using uninitialized devices.
+// For now, this will not affect devices which do not have a device node and are not network interfaces.
+func (e *Enumerate) AddMatchIsInitialized() (err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_add_match_is_initialized(e.ptr) != 0 {
@@ -132,7 +146,8 @@ func (e *enumerate) AddMatchIsInitialized() (err error) {
 	return
 }
 
-func (e *enumerate) AddSyspath(syspath string) (err error) {
+// AddSyspath adds a device to the list of enumerated devices, to retrieve it back sorted in dependency order.
+func (e *Enumerate) AddSyspath(syspath string) (err error) {
 	e.lock()
 	defer e.unlock()
 	s := C.CString(syspath)
@@ -143,40 +158,43 @@ func (e *enumerate) AddSyspath(syspath string) (err error) {
 	return
 }
 
-func (e *enumerate) DeviceSyspaths() (s Set, err error) {
+// DeviceSyspaths retrieves a list of device syspaths matching the filter, sorted in dependency order.
+func (e *Enumerate) DeviceSyspaths() (s List, err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_scan_devices(e.ptr) < 0 {
 		err = errors.New("udev: udev_enumerate_scan_devices failed")
 	} else {
-		s = make(Set)
-		s.addFromListEntry(C.udev_enumerate_get_list_entry(e.ptr))
+		s = List{}
+		s = s.addFromListEntry(C.udev_enumerate_get_list_entry(e.ptr))
 	}
 	return
 }
 
-func (e *enumerate) SubsystemSyspaths() (s Set, err error) {
+// SubsystemSyspaths retrieves a list of subsystem syspaths matching the filter, sorted in dependency order.
+func (e *Enumerate) SubsystemSyspaths() (s List, err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_scan_subsystems(e.ptr) < 0 {
 		err = errors.New("udev: udev_enumerate_scan_subsystems failed")
 	} else {
-		s = make(Set)
-		s.addFromListEntry(C.udev_enumerate_get_list_entry(e.ptr))
+		s = List{}
+		s = s.addFromListEntry(C.udev_enumerate_get_list_entry(e.ptr))
 	}
 	return
 }
 
-func (e *enumerate) Devices() (m DeviceMap, err error) {
+// Devices retrieves a list of Devices matching the filter, sorted in dependency order.
+func (e *Enumerate) Devices() (m DeviceList, err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_scan_devices(e.ptr) < 0 {
 		err = errors.New("udev: udev_enumerate_scan_devices failed")
 	} else {
-		m = make(DeviceMap)
+		m = DeviceList{}
 		for l := C.udev_enumerate_get_list_entry(e.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
 			s := C.udev_list_entry_get_name(l)
-			m[C.GoString(s)] = e.u.newDevice(C.udev_device_new_from_syspath(e.u.ptr, s))
+			m = append(m, e.u.newDevice(C.udev_device_new_from_syspath(e.u.ptr, s)))
 		}
 	}
 	return

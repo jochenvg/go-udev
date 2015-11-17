@@ -35,4 +35,22 @@ func (m Map) addFromListEntry(l *C.struct_udev_list_entry) {
 }
 
 // DeviceMap is a map from syspaths to device
-type DeviceMap map[string]*device
+type DeviceMap map[string]*Device
+
+const (
+	listCapacity       = 100
+	deviceListCapacity = 100
+)
+
+// List is a list of strings
+type List []string
+
+func (list List) addFromListEntry(l *C.struct_udev_list_entry) List {
+	for ; l != nil; l = C.udev_list_entry_get_next(l) {
+		list = append(list, C.GoString(C.udev_list_entry_get_name(l)))
+	}
+	return list
+}
+
+// DeviceList is a list of Device pointers
+type DeviceList [](*Device)

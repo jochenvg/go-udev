@@ -26,7 +26,11 @@ func TestMonitorDeviceChan(t *testing.T) {
 	go func() {
 		fmt.Println("Started listening on channel")
 		for d := range ch {
-			fmt.Println(d.Syspath(), d.Action())
+			action, e := d.Action()
+			if e != nil {
+				t.Fail()
+			}
+			fmt.Println(d.Syspath(), action)
 		}
 		fmt.Println("Channel closed")
 		wg.Done()

@@ -43,34 +43,34 @@ func TestEnumerateDevicesWithFilter(t *testing.T) {
 	e.AddMatchTag("systemd")
 	//	e.AddMatchProperty("DEVTYPE", "partition")
 	ds, err := e.Devices()
-	if err != nil {
+	if err != nil || len(ds) == 0 {
 		t.Fail()
 	}
-	if len(ds) == 0 {
-		t.Fail()
-	}
-	for k, d := range ds {
-		if k != d.Syspath() {
+	for i := range ds {
+		if ds[i].Subsystem() != "block" {
 			t.Fail()
 		}
-		if d.Subsystem() != "block" {
+		if !ds[i].IsInitialized() {
 			t.Fail()
 		}
-		if !d.IsInitialized() {
+		value, e := ds[i].PropertyValue("ID_TYPE")
+		if e != nil || value != "disk" {
 			t.Fail()
 		}
-		if d.PropertyValue("ID_TYPE") != "disk" {
+		value, e = ds[i].SysattrValue("partition")
+		if e != nil || value != "1" {
 			t.Fail()
 		}
-		if d.SysattrValue("partition") != "1" {
-			t.Fail()
-		}
-		if !d.HasTag("systemd") {
+		if !ds[i].HasTag("systemd") {
 			t.Fail()
 		}
 
-		parent := d.Parent()
-		parent2 := d.ParentWithSubsystemDevtype("block", "disk")
+		parent := ds[i].Parent()
+		if e != nil {
+			t.Fail()
+		}
+
+		parent2 := ds[i].ParentWithSubsystemDevtype("block", "disk")
 		if parent.Syspath() != parent2.Syspath() {
 			t.Fail()
 		}

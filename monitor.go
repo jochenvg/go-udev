@@ -17,8 +17,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Private structure wrapping a udev monitor object
-type monitor struct {
+// Monitor is an opaque object handling an event source
+type Monitor struct {
 	ptr *C.struct_udev_monitor
 	u   *Udev
 }
@@ -29,20 +29,23 @@ const (
 )
 
 // Lock the udev context
-func (m *monitor) lock() {
+func (m *Monitor) lock() {
 	m.u.m.Lock()
 }
 
 // Unlock the udev context
-func (m *monitor) unlock() {
+func (m *Monitor) unlock() {
 	m.u.m.Unlock()
 }
 
-func monitorUnref(m *monitor) {
+// Unref the monitor
+func monitorUnref(m *Monitor) {
 	C.udev_monitor_unref(m.ptr)
 }
 
-func (m *monitor) SetReceiveBufferSize(size int) (err error) {
+// SetReceiveBufferSize sets the size of the kernel socket buffer.
+// This call needs the appropriate privileges to succeed.
+func (m *Monitor) SetReceiveBufferSize(size int) (err error) {
 	m.lock()
 	defer m.unlock()
 	if C.udev_monitor_set_receive_buffer_size(m.ptr, (C.int)(size)) != 0 {
@@ -51,7 +54,10 @@ func (m *monitor) SetReceiveBufferSize(size int) (err error) {
 	return
 }
 
-func (m *monitor) FilterAddMatchSubsystemDevtype(subsystem, devtype string) (err error) {
+// FilterAddMatchSubsystemDevtype adds a filter matching the device against a subsystem and device type.
+// This filter is efficiently executed inside the kernel, and libudev subscribers will usually not be woken up for devices which do not match.
+// The filter must be installed before the monitor is switched to listening mode with the DeviceChan function.
+func (m *Monitor) FilterAddMatchSubsystemDevtype(subsystem, devtype string) (err error) {
 	m.lock()
 	defer m.unlock()
 	s, d := C.CString(subsystem), C.CString(devtype)
@@ -63,7 +69,10 @@ func (m *monitor) FilterAddMatchSubsystemDevtype(subsystem, devtype string) (err
 	return
 }
 
-func (m *monitor) FilterAddMatchTag(tag string) (err error) {
+// FilterAddMatchTag adds a filter matching the device against a tag.
+// This filter is efficiently executed inside the kernel, and libudev subscribers will usually not be woken up for devices which do not match.
+// The filter must be installed before the monitor is switched to listening mode.
+func (m *Monitor) FilterAddMatchTag(tag string) (err error) {
 	m.lock()
 	defer m.unlock()
 	t := C.CString(tag)
@@ -74,7 +83,9 @@ func (m *monitor) FilterAddMatchTag(tag string) (err error) {
 	return
 }
 
-func (m *monitor) FilterUpdate() (err error) {
+// FilterUpdate updates the installed socket filter.
+// This is only needed, if the filter was removed or changed.
+func (m *Monitor) FilterUpdate() (err error) {
 	m.lock()
 	defer m.unlock()
 	if C.udev_monitor_filter_update(m.ptr) != 0 {
@@ -83,7 +94,8 @@ func (m *monitor) FilterUpdate() (err error) {
 	return
 }
 
-func (m *monitor) FilterRemove() (err error) {
+// FilterRemove removes all filter from the Monitor.
+func (m *Monitor) FilterRemove() (err error) {
 	m.lock()
 	defer m.unlock()
 	if C.udev_monitor_filter_remove(m.ptr) != 0 {
@@ -92,13 +104,21 @@ func (m *monitor) FilterRemove() (err error) {
 	return
 }
 
-func (m *monitor) receiveDevice() (d *device) {
+// receiveDevice is a helper function receiving a device while the Mutex is locked
+func (m *Monitor) receiveDevice() (d *Device) {
 	m.lock()
 	defer m.unlock()
 	return m.u.newDevice(C.udev_monitor_receive_device(m.ptr))
 }
 
-func (m *monitor) DeviceChan(done <-chan struct{}) (<-chan *device, error) {
+// DeviceChan binds the udev_monitor socket to the event source and spawns a
+// goroutine. The goroutine efficiently waits on the monitor socket using epoll.
+// Data is received from the udev monitor socket and a new Device is created
+// with the data received. Pointers to the device are sent on the returned channel.
+// The function takes a done signalling channel as a parameter, which when
+// triggered will stop the goroutine and close the device channel.
+// Only socket connections with uid=0 are accepted.
+func (m *Monitor) DeviceChan(done <-chan struct{}) (<-chan *Device, error) {
 
 	var event unix.EpollEvent
 	var events [maxEpollEvents]unix.EpollEvent
@@ -132,7 +152,7 @@ func (m *monitor) DeviceChan(done <-chan struct{}) (<-chan *device, error) {
 	}
 
 	// Create the channel
-	ch := make(chan *device)
+	ch := make(chan *Device)
 
 	// Create goroutine to epoll the fd
 	go func(done <-chan struct{}, fd int32) {
