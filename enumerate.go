@@ -158,39 +158,43 @@ func (e *Enumerate) AddSyspath(syspath string) (err error) {
 }
 
 // DeviceSyspaths retrieves a list of device syspaths matching the filter, sorted in dependency order.
-func (e *Enumerate) DeviceSyspaths() (s List, err error) {
+func (e *Enumerate) DeviceSyspaths() (s []string, err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_scan_devices(e.ptr) < 0 {
 		err = errors.New("udev: udev_enumerate_scan_devices failed")
 	} else {
-		s = List{}
-		s = s.addFromListEntry(C.udev_enumerate_get_list_entry(e.ptr))
+		s = make([]string, 0)
+		for l := C.udev_enumerate_get_list_entry(e.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
+			s = append(s, C.GoString(C.udev_list_entry_get_name(l)))
+		}
 	}
 	return
 }
 
 // SubsystemSyspaths retrieves a list of subsystem syspaths matching the filter, sorted in dependency order.
-func (e *Enumerate) SubsystemSyspaths() (s List, err error) {
+func (e *Enumerate) SubsystemSyspaths() (s []string, err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_scan_subsystems(e.ptr) < 0 {
 		err = errors.New("udev: udev_enumerate_scan_subsystems failed")
 	} else {
-		s = List{}
-		s = s.addFromListEntry(C.udev_enumerate_get_list_entry(e.ptr))
+		s = make([]string, 0)
+		for l := C.udev_enumerate_get_list_entry(e.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
+			s = append(s, C.GoString(C.udev_list_entry_get_name(l)))
+		}
 	}
 	return
 }
 
 // Devices retrieves a list of Devices matching the filter, sorted in dependency order.
-func (e *Enumerate) Devices() (m DeviceList, err error) {
+func (e *Enumerate) Devices() (m []*Device, err error) {
 	e.lock()
 	defer e.unlock()
 	if C.udev_enumerate_scan_devices(e.ptr) < 0 {
 		err = errors.New("udev: udev_enumerate_scan_devices failed")
 	} else {
-		m = DeviceList{}
+		m = make([]*Device, 0)
 		for l := C.udev_enumerate_get_list_entry(e.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
 			s := C.udev_list_entry_get_name(l)
 			m = append(m, e.u.newDevice(C.udev_device_new_from_syspath(e.u.ptr, s)))

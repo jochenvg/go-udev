@@ -115,40 +115,48 @@ func (d *Device) IsInitialized() bool {
 	return C.udev_device_get_is_initialized(d.ptr) != 0
 }
 
-// Devlinks retrieves the Set of device links pointing to the device file of the udev device.
+// Devlinks retrieves the map of device links pointing to the device file of the udev device.
 // The path is an absolute path, and starts with the device directory.
-func (d *Device) Devlinks() (r Set) {
+func (d *Device) Devlinks() (r map[string]struct{}) {
 	d.lock()
 	defer d.unlock()
-	r = make(Set)
-	r.addFromListEntry(C.udev_device_get_devlinks_list_entry(d.ptr))
+	r = make(map[string]struct{})
+	for l := C.udev_device_get_devlinks_list_entry(d.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
+		r[C.GoString(C.udev_list_entry_get_name(l))] = struct{}{}
+	}
 	return
 }
 
-// Properties retrieves a Map of key/value device properties of the udev device.
-func (d *Device) Properties() (r Map) {
+// Properties retrieves a map[string]string of key/value device properties of the udev device.
+func (d *Device) Properties() (r map[string]string) {
 	d.lock()
 	defer d.unlock()
-	r = make(Map)
-	r.addFromListEntry(C.udev_device_get_properties_list_entry(d.ptr))
+	r = make(map[string]string)
+	for l := C.udev_device_get_properties_list_entry(d.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
+		r[C.GoString(C.udev_list_entry_get_name(l))] = C.GoString(C.udev_list_entry_get_value(l))
+	}
 	return
 }
 
 // Tags retrieves the Set of tags attached to the udev device.
-func (d *Device) Tags() (r Set) {
+func (d *Device) Tags() (r map[string]struct{}) {
 	d.lock()
 	defer d.unlock()
-	r = make(Set)
-	r.addFromListEntry(C.udev_device_get_tags_list_entry(d.ptr))
+	r = make(map[string]struct{})
+	for l := C.udev_device_get_tags_list_entry(d.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
+		r[C.GoString(C.udev_list_entry_get_name(l))] = struct{}{}
+	}
 	return
 }
 
 // Sysattrs returns a Set with the  systems attributes of the receiver
-func (d *Device) Sysattrs() (r Set) {
+func (d *Device) Sysattrs() (r map[string]struct{}) {
 	d.lock()
 	defer d.unlock()
-	r = make(Set)
-	r.addFromListEntry(C.udev_device_get_sysattr_list_entry(d.ptr))
+	r = make(map[string]struct{})
+	for l := C.udev_device_get_sysattr_list_entry(d.ptr); l != nil; l = C.udev_list_entry_get_next(l) {
+		r[C.GoString(C.udev_list_entry_get_name(l))] = struct{}{}
+	}
 	return
 }
 

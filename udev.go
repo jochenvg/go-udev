@@ -25,9 +25,6 @@ type Udev struct {
 	once sync.Once
 }
 
-// DeviceType is a character representing a kernel device type
-type DeviceType uint8
-
 func udevUnref(u *Udev) {
 	C.udev_unref(u.ptr)
 }
@@ -113,10 +110,11 @@ func (u *Udev) NewDeviceFromSyspath(syspath string) *Device {
 }
 
 // NewDeviceFromDevnum returns a pointer to a new device identified by its Devnum, and nil on error
-func (u *Udev) NewDeviceFromDevnum(t DeviceType, n Devnum) *Device {
+// deviceType is 'c' for a character device and 'b' for a block device
+func (u *Udev) NewDeviceFromDevnum(deviceType uint8, n Devnum) *Device {
 	u.lock()
 	defer u.unlock()
-	return u.newDevice(C.udev_device_new_from_devnum(u.ptr, C.char(t), n.d))
+	return u.newDevice(C.udev_device_new_from_devnum(u.ptr, C.char(deviceType), n.d))
 }
 
 // NewDeviceFromSubsystemSysname returns a pointer to a new device identified by its subystem and sysname, and nil on error
