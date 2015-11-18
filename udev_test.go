@@ -95,9 +95,19 @@ func TestNewDeviceFromDeviceID(t *testing.T) {
 	}
 }
 
+func ExampleUdev_NewMonitorFromNetlink() {
+	u := Udev{}
+	_ = u.NewMonitorFromNetlink("udev")
+}
+
 func TestNewMonitorFromNetlink(t *testing.T) {
 	u := Udev{}
 	_ = u.NewMonitorFromNetlink("udev")
+}
+
+func ExampleUdev_NewEnumerate() {
+	u := Udev{}
+	_ = u.NewEnumerate()
 }
 
 func TestNewEnumerate(t *testing.T) {

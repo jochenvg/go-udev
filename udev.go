@@ -144,6 +144,10 @@ func (u *Udev) NewEnumerate() *Enumerate {
 }
 
 // NewMonitorFromNetlink returns a pointer to a new monitor listening to a NetLink socket, and nil on error
+// The name argument is either "kernel" or "udev".
+// When passing "kernel" the events are received before they are processed by udev.
+// When passing "udev" the events are received after udev has processed the events and created device nodes.
+// In most cases you will want to use "udev".
 func (u *Udev) NewMonitorFromNetlink(name string) *Monitor {
 	u.lock()
 	defer u.unlock()
