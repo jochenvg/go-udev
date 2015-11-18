@@ -3,6 +3,7 @@
 package udev
 
 import (
+	"fmt"
 	"runtime"
 	"testing"
 )
@@ -43,35 +44,30 @@ func TestEnumerateDevicesWithFilter(t *testing.T) {
 	//	e.AddMatchProperty("DEVTYPE", "partition")
 	ds, err := e.Devices()
 	if err != nil || len(ds) == 0 {
+		fmt.Println(len(ds))
 		t.Fail()
 	}
 	for i := range ds {
 		if ds[i].Subsystem() != "block" {
-			t.Fail()
+			t.Error("Wrong subsystem")
 		}
 		if !ds[i].IsInitialized() {
-			t.Fail()
+			t.Error("Not initialized")
 		}
-		value, e := ds[i].PropertyValue("ID_TYPE")
-		if e != nil || value != "disk" {
-			t.Fail()
+		if ds[i].PropertyValue("ID_TYPE") != "disk" {
+			t.Error("Wrong ID_TYPE")
 		}
-		value, e = ds[i].SysattrValue("partition")
-		if e != nil || value != "1" {
-			t.Fail()
+		if ds[i].SysattrValue("partition") != "1" {
+			t.Error("Wrong partition")
 		}
 		if !ds[i].HasTag("systemd") {
-			t.Fail()
+			t.Error("Not tagged")
 		}
 
 		parent := ds[i].Parent()
-		if e != nil {
-			t.Fail()
-		}
-
 		parent2 := ds[i].ParentWithSubsystemDevtype("block", "disk")
 		if parent.Syspath() != parent2.Syspath() {
-			t.Fail()
+			t.Error("Parent syspaths don't match")
 		}
 
 	}

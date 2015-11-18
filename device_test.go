@@ -24,9 +24,7 @@ func ExampleDevice() {
 	fmt.Printf("Devtype:%v\n", d.Devtype())
 	fmt.Printf("Sysnum:%v\n", d.Sysnum())
 	fmt.Printf("IsInitialized:%v\n", d.IsInitialized())
-	if s, e := d.Driver(); e != nil {
-		fmt.Printf("Driver:%v\n", s)
-	}
+	fmt.Printf("Driver:%v\n", d.Driver())
 
 	// Output:
 	// Syspath:/sys/devices/virtual/mem/zero
@@ -51,15 +49,13 @@ func TestDeviceZero(t *testing.T) {
 	if d.Devnode() != "/dev/zero" {
 		t.Fail()
 	}
-	p, e := d.PropertyValue("SUBSYSTEM")
-	if e != nil || p != "mem" {
+	if d.PropertyValue("SUBSYSTEM") != "mem" {
 		t.Fail()
 	}
 	if !d.IsInitialized() {
 		t.Fail()
 	}
-	s, e := d.SysattrValue("subsystem")
-	if e != nil || s != "mem" {
+	if d.SysattrValue("subsystem") != "mem" {
 		t.Fail()
 	}
 	// Device should have Properties
@@ -86,15 +82,13 @@ func TestDeviceRandom(t *testing.T) {
 	if d.Devnode() != "/dev/random" {
 		t.Fail()
 	}
-	p, e := d.PropertyValue("SUBSYSTEM")
-	if e != nil || p != "mem" {
+	if d.PropertyValue("SUBSYSTEM") != "mem" {
 		t.Fail()
 	}
 	if !d.IsInitialized() {
 		t.Fail()
 	}
-	s, e := d.SysattrValue("subsystem")
-	if e != nil || s != "mem" {
+	if d.SysattrValue("subsystem") != "mem" {
 		t.Fail()
 	}
 	// Device should have Properties

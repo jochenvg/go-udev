@@ -161,31 +161,19 @@ func (d *Device) Sysattrs() (r map[string]struct{}) {
 }
 
 // PropertyValue retrieves the value of a device property
-func (d *Device) PropertyValue(key string) (s string, err error) {
+func (d *Device) PropertyValue(key string) string {
 	d.lock()
 	defer d.unlock()
 	k := C.CString(key)
 	defer freeCharPtr(k)
-	cptr := C.udev_device_get_property_value(d.ptr, k)
-	if cptr == nil {
-		err = errors.New("udev: udev_device_get_property_value no such property")
-	} else {
-		s = C.GoString(cptr)
-	}
-	return
+	return C.GoString(C.udev_device_get_property_value(d.ptr, k))
 }
 
 // Driver returns the driver for the receiver
-func (d *Device) Driver() (s string, err error) {
+func (d *Device) Driver() string {
 	d.lock()
 	defer d.unlock()
-	cptr := C.udev_device_get_driver(d.ptr)
-	if cptr == nil {
-		err = errors.New("udev: udev_device_get_driver no driver")
-	} else {
-		s = C.GoString(cptr)
-	}
-	return
+	return C.GoString(C.udev_device_get_driver(d.ptr))
 }
 
 // Devnum returns the device major/minor number.
@@ -199,29 +187,19 @@ func (d *Device) Devnum() Devnum {
 // This is only valid if the device was received through a monitor.
 // Devices read from sys do not have an action string.
 // Usual actions are: add, remove, change, online, offline.
-func (d *Device) Action() (s string, err error) {
+func (d *Device) Action() string {
 	d.lock()
 	defer d.unlock()
-	cptr := C.udev_device_get_action(d.ptr)
-	if cptr == nil {
-		err = errors.New("udev: udev_device_get_action no action")
-	} else {
-		s = C.GoString(cptr)
-	}
-	return
+	return C.GoString(C.udev_device_get_action(d.ptr))
 }
 
 // Seqnum returns the sequence number of the event.
 // This is only valid if the device was received through a monitor.
 // Devices read from sys do not have a sequence number.
-func (d *Device) Seqnum() (s uint64, err error) {
+func (d *Device) Seqnum() uint64 {
 	d.lock()
 	defer d.unlock()
-	s = uint64(C.udev_device_get_seqnum(d.ptr))
-	if s == 0 {
-		err = errors.New("udev: udev_device_get_seqnum no sequence number")
-	}
-	return
+	return uint64(C.udev_device_get_seqnum(d.ptr))
 }
 
 // UsecSinceInitialized returns the number of microseconds passed since udev set up the device for the first time.
@@ -233,21 +211,15 @@ func (d *Device) UsecSinceInitialized() uint64 {
 	return uint64(C.udev_device_get_usec_since_initialized(d.ptr))
 }
 
-// SysattrValue retrieves the content of a sys attribute file, and returns an error if there is no sys attribute value.
+// SysattrValue retrieves the content of a sys attribute file, and returns an empty string if there is no sys attribute value.
 // The retrieved value is cached in the device.
 // Repeated calls will return the same value and not open the attribute again.
-func (d *Device) SysattrValue(sysattr string) (str string, err error) {
+func (d *Device) SysattrValue(sysattr string) string {
 	d.lock()
 	defer d.unlock()
 	s := C.CString(sysattr)
 	defer freeCharPtr(s)
-	cptr := C.udev_device_get_sysattr_value(d.ptr, s)
-	if cptr == nil {
-		err = errors.New("udev: udev_device_get_sysattr_value no sysattr")
-	} else {
-		str = C.GoString(cptr)
-	}
-	return
+	return C.GoString(C.udev_device_get_sysattr_value(d.ptr, s))
 }
 
 // SetSysattrValue sets the content of a sys attribute file, and returns an error if this fails.
