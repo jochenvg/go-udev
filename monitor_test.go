@@ -54,7 +54,6 @@ func ExampleMonitor() {
 		wg.Done()
 	}()
 	wg.Wait()
-
 }
 
 func TestMonitorDeviceChan(t *testing.T) {
