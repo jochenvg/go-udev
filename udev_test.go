@@ -2,7 +2,18 @@
 
 package udev
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
+
+func ExampleUdev_NewDeviceFromDevnum() {
+	u := Udev{}
+	d := u.NewDeviceFromDevnum('c', MkDev(1, 8))
+	fmt.Println(d.Syspath())
+	// Output:
+	// /sys/devices/virtual/mem/random
+}
 
 func TestNewDeviceFromDevnum(t *testing.T) {
 	u := Udev{}
@@ -18,18 +29,12 @@ func TestNewDeviceFromDevnum(t *testing.T) {
 	}
 }
 
-func TestNewDeviceFromDevnumNoClose(t *testing.T) {
+func ExampleUdev_NewDeviceFromSyspath() {
 	u := Udev{}
-	d := u.NewDeviceFromDevnum('c', MkDev(1, 8))
-	if d.Devnum().Major() != 1 {
-		t.Fail()
-	}
-	if d.Devnum().Minor() != 8 {
-		t.Fail()
-	}
-	if d.Devpath() != "/devices/virtual/mem/random" {
-		t.Fail()
-	}
+	d := u.NewDeviceFromSyspath("/sys/devices/virtual/mem/random")
+	fmt.Println(d.Syspath())
+	// Output:
+	// /sys/devices/virtual/mem/random
 }
 
 func TestNewDeviceFromSyspath(t *testing.T) {
@@ -46,6 +51,14 @@ func TestNewDeviceFromSyspath(t *testing.T) {
 	}
 }
 
+func ExampleUdev_NewDeviceFromSubsystemSysname() {
+	u := Udev{}
+	d := u.NewDeviceFromSubsystemSysname("mem", "random")
+	fmt.Println(d.Syspath())
+	// Output:
+	// /sys/devices/virtual/mem/random
+}
+
 func TestNewDeviceFromSubsystemSysname(t *testing.T) {
 	u := Udev{}
 	d := u.NewDeviceFromSubsystemSysname("mem", "random")
@@ -58,6 +71,14 @@ func TestNewDeviceFromSubsystemSysname(t *testing.T) {
 	if d.Devpath() != "/devices/virtual/mem/random" {
 		t.Fail()
 	}
+}
+
+func ExampleUdev_NewDeviceFromDeviceID() {
+	u := Udev{}
+	d := u.NewDeviceFromDeviceID("c1:8")
+	fmt.Println(d.Syspath())
+	// Output:
+	// /sys/devices/virtual/mem/random
 }
 
 func TestNewDeviceFromDeviceID(t *testing.T) {
