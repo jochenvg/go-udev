@@ -8,6 +8,19 @@ import (
 	"testing"
 )
 
+func ExampleEnumerate_DeviceSyspaths() {
+
+	// Create Udev and Enumerate
+	u := Udev{}
+	e := u.NewEnumerate()
+
+	// Enumerate all device syspaths
+	dsp, _ := e.DeviceSyspaths()
+	for s := range dsp {
+		fmt.Println(s)
+	}
+}
+
 func TestEnumerateDeviceSyspaths(t *testing.T) {
 	u := Udev{}
 	e := u.NewEnumerate()
@@ -17,6 +30,18 @@ func TestEnumerateDeviceSyspaths(t *testing.T) {
 	}
 	if len(dsp) <= 0 {
 		t.Fail()
+	}
+}
+func ExampleEnumerate_SubsystemSyspaths() {
+
+	// Create Udev and Enumerate
+	u := Udev{}
+	e := u.NewEnumerate()
+
+	// Enumerate all subsystem syspaths
+	dsp, _ := e.SubsystemSyspaths()
+	for s := range dsp {
+		fmt.Println(s)
 	}
 }
 
@@ -29,6 +54,21 @@ func TestEnumerateSubsystemSyspaths(t *testing.T) {
 	}
 	if len(ssp) == 0 {
 		t.Fail()
+	}
+}
+
+func ExampleEnumerate_Devices() {
+	// Create Udev and Enumerate
+	u := Udev{}
+	e := u.NewEnumerate()
+
+	// Add some FilterAddMatchSubsystemDevtype
+	e.AddMatchSubsystem("block")
+	e.AddMatchIsInitialized()
+	devices, _ := e.Devices()
+	for i := range devices {
+		device := devices[i]
+		fmt.Println(device.Syspath())
 	}
 }
 
