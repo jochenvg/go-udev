@@ -26,6 +26,12 @@ func ExampleDevice() {
 	fmt.Printf("IsInitialized:%v\n", d.IsInitialized())
 	fmt.Printf("Driver:%v\n", d.Driver())
 
+	// Use one of the iterators
+	it := d.PropertyIterator()
+	it.Each(func(item interface{}) {
+		kv := item.([]string)
+		_ = fmt.Sprintf("Property:%v=%v\n", kv[0], kv[1])
+	})
 	// Output:
 	// Syspath:/sys/devices/virtual/mem/zero
 	// Devpath:/devices/virtual/mem/zero
@@ -68,39 +74,10 @@ func TestDeviceZero(t *testing.T) {
 	if len(sysattrs) == 0 {
 		t.Fail()
 	}
-}
-
-func TestDeviceRandom(t *testing.T) {
-	u := Udev{}
-	d := u.NewDeviceFromDeviceID("c1:8")
-	if d.Subsystem() != "mem" {
-		t.Fail()
-	}
-	if d.Syspath() != "/sys/devices/virtual/mem/random" {
-		t.Fail()
-	}
-	if d.Devnode() != "/dev/random" {
-		t.Fail()
-	}
-	if d.PropertyValue("SUBSYSTEM") != "mem" {
-		t.Fail()
-	}
-	if !d.IsInitialized() {
-		t.Fail()
-	}
-	if d.SysattrValue("subsystem") != "mem" {
-		t.Fail()
-	}
-	// Device should have Properties
-	properties := d.Properties()
-	if len(properties) == 0 {
-		t.Fail()
-	}
-	// Device should have Sysattrs
-	sysattrs := d.Sysattrs()
-	if len(sysattrs) == 0 {
-		t.Fail()
-	}
+	it := d.PropertyIterator()
+	it.Each(func(item interface{}) {
+		_ = item.([]string)
+	})
 }
 
 func TestDeviceGC(t *testing.T) {

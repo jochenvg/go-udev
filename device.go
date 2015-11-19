@@ -11,6 +11,7 @@ package udev
 */
 import "C"
 import "errors"
+import "github.com/jkeiser/iter"
 
 // Device wraps a libudev device object
 type Device struct {
@@ -127,6 +128,30 @@ func (d *Device) Devlinks() (r map[string]struct{}) {
 	return
 }
 
+// DevlinkIterator returns an Iterator over the device links pointing to the device file of the udev device.
+// The Iterator is using the github.com/jkeiser/iter package.
+// Values are returned as an interface{} and should be cast to string.
+func (d *Device) DevlinkIterator() iter.Iterator {
+	d.lock()
+	defer d.unlock()
+	l := C.udev_device_get_devlinks_list_entry(d.ptr)
+	return iter.Iterator{
+		Next: func() (item interface{}, err error) {
+			d.lock()
+			defer d.unlock()
+			if l != nil {
+				item = C.GoString(C.udev_list_entry_get_name(l))
+				l = C.udev_list_entry_get_next(l)
+			} else {
+				err = iter.FINISHED
+			}
+			return
+		},
+		Close: func() {
+		},
+	}
+}
+
 // Properties retrieves a map[string]string of key/value device properties of the udev device.
 func (d *Device) Properties() (r map[string]string) {
 	d.lock()
@@ -136,6 +161,34 @@ func (d *Device) Properties() (r map[string]string) {
 		r[C.GoString(C.udev_list_entry_get_name(l))] = C.GoString(C.udev_list_entry_get_value(l))
 	}
 	return
+}
+
+// PropertyIterator returns an Iterator over the key/value device properties of the udev device.
+// The Iterator is using the github.com/jkeiser/iter package.
+// Values are returned as an interface{} and should be cast to []string,
+// which will have length 2 and represent a Key/Value pair.
+func (d *Device) PropertyIterator() iter.Iterator {
+	d.lock()
+	defer d.unlock()
+	l := C.udev_device_get_properties_list_entry(d.ptr)
+	return iter.Iterator{
+		Next: func() (item interface{}, err error) {
+			d.lock()
+			defer d.unlock()
+			if l != nil {
+				item = []string{
+					C.GoString(C.udev_list_entry_get_name(l)),
+					C.GoString(C.udev_list_entry_get_value(l)),
+				}
+				l = C.udev_list_entry_get_next(l)
+			} else {
+				err = iter.FINISHED
+			}
+			return
+		},
+		Close: func() {
+		},
+	}
 }
 
 // Tags retrieves the Set of tags attached to the udev device.
@@ -149,7 +202,31 @@ func (d *Device) Tags() (r map[string]struct{}) {
 	return
 }
 
-// Sysattrs returns a Set with the  systems attributes of the receiver
+// TagIterator returns an Iterator over the tags attached to the udev device.
+// The Iterator is using the github.com/jkeiser/iter package.
+// Values are returned as an interface{} and should be cast to string.
+func (d *Device) TagIterator() iter.Iterator {
+	d.lock()
+	defer d.unlock()
+	l := C.udev_device_get_tags_list_entry(d.ptr)
+	return iter.Iterator{
+		Next: func() (item interface{}, err error) {
+			d.lock()
+			defer d.unlock()
+			if l != nil {
+				item = C.GoString(C.udev_list_entry_get_name(l))
+				l = C.udev_list_entry_get_next(l)
+			} else {
+				err = iter.FINISHED
+			}
+			return
+		},
+		Close: func() {
+		},
+	}
+}
+
+// Sysattrs returns a Set with the systems attributes of the udev device.
 func (d *Device) Sysattrs() (r map[string]struct{}) {
 	d.lock()
 	defer d.unlock()
@@ -158,6 +235,30 @@ func (d *Device) Sysattrs() (r map[string]struct{}) {
 		r[C.GoString(C.udev_list_entry_get_name(l))] = struct{}{}
 	}
 	return
+}
+
+// SysattrIterator returns an Iterator over the systems attributes of the udev device.
+// The Iterator is using the github.com/jkeiser/iter package.
+// Values are returned as an interface{} and should be cast to string.
+func (d *Device) SysattrIterator() iter.Iterator {
+	d.lock()
+	defer d.unlock()
+	l := C.udev_device_get_sysattr_list_entry(d.ptr)
+	return iter.Iterator{
+		Next: func() (item interface{}, err error) {
+			d.lock()
+			defer d.unlock()
+			if l != nil {
+				item = C.GoString(C.udev_list_entry_get_name(l))
+				l = C.udev_list_entry_get_next(l)
+			} else {
+				err = iter.FINISHED
+			}
+			return
+		},
+		Close: func() {
+		},
+	}
 }
 
 // PropertyValue retrieves the value of a device property
