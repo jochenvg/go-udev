@@ -53,6 +53,20 @@ func (m *Monitor) SetReceiveBufferSize(size int) (err error) {
 	return
 }
 
+// FilterAddMatchSubsystem adds a filter matching the device against a subsystem.
+// This filter is efficiently executed inside the kernel, and libudev subscribers will usually not be woken up for devices which do not match.
+// The filter must be installed before the monitor is switched to listening mode with the DeviceChan function.
+func (m *Monitor) FilterAddMatchSubsystem(subsystem string) (err error) {
+	m.lock()
+	defer m.unlock()
+	s := C.CString(subsystem)
+	defer freeCharPtr(s)
+	if C.udev_monitor_filter_add_match_subsystem_devtype(m.ptr, s, nil) != 0 {
+		err = errors.New("udev: udev_monitor_filter_add_match_subsystem_devtype failed")
+	}
+	return
+}
+
 // FilterAddMatchSubsystemDevtype adds a filter matching the device against a subsystem and device type.
 // This filter is efficiently executed inside the kernel, and libudev subscribers will usually not be woken up for devices which do not match.
 // The filter must be installed before the monitor is switched to listening mode with the DeviceChan function.
