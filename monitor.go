@@ -12,6 +12,7 @@ package udev
 import "C"
 import (
 	"errors"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -178,6 +179,11 @@ func (m *Monitor) DeviceChan(done <-chan struct{}) (<-chan *Device, error) {
 			// Poll the file descriptor
 			nevents, e := unix.EpollWait(epfd, events[:], epollTimeout)
 			if e != nil {
+				if errno, ok := e.(syscall.Errno); ok {
+					if errno == syscall.EINTR {
+						continue
+					}
+				}
 				return
 			}
 			// Process events
