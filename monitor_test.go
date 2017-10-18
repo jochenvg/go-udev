@@ -3,6 +3,7 @@
 package udev
 
 import (
+	"context"
 	"fmt"
 	"runtime"
 	"sync"
@@ -20,11 +21,11 @@ func ExampleMonitor() {
 	m.FilterAddMatchSubsystemDevtype("block", "disk")
 	m.FilterAddMatchTag("systemd")
 
-	// Create a done signal channel
-	done := make(chan struct{})
+	// Create a context
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// Start monitor goroutine and get receive channel
-	ch, _ := m.DeviceChan(done)
+	ch, _ := m.DeviceChan(ctx)
 
 	// WaitGroup for timers
 	var wg sync.WaitGroup
@@ -50,7 +51,7 @@ func ExampleMonitor() {
 		fmt.Println("Starting timer to signal done")
 		<-time.After(4 * time.Second)
 		fmt.Println("Signalling done")
-		close(done)
+		cancel()
 		wg.Done()
 	}()
 	wg.Wait()
@@ -61,8 +62,8 @@ func TestMonitorDeviceChan(t *testing.T) {
 	m := u.NewMonitorFromNetlink("udev")
 	m.FilterAddMatchSubsystemDevtype("block", "disk")
 	m.FilterAddMatchTag("systemd")
-	done := make(chan struct{})
-	ch, e := m.DeviceChan(done)
+	ctx, cancel := context.WithCancel(context.Background())
+	ch, e := m.DeviceChan(ctx)
 	if e != nil {
 		t.Fail()
 	}
@@ -89,7 +90,7 @@ func TestMonitorDeviceChan(t *testing.T) {
 		fmt.Println("Starting timer to signal done")
 		<-time.After(4 * time.Second)
 		fmt.Println("Signalling done")
-		close(done)
+		cancel()
 		wg.Done()
 	}()
 	wg.Wait()
