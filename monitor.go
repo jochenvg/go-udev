@@ -11,6 +11,7 @@ package udev
 */
 import "C"
 import (
+	"context"
 	"errors"
 	"syscall"
 
@@ -128,11 +129,11 @@ func (m *Monitor) receiveDevice() (d *Device) {
 // DeviceChan binds the udev_monitor socket to the event source and spawns a
 // goroutine. The goroutine efficiently waits on the monitor socket using epoll.
 // Data is received from the udev monitor socket and a new Device is created
-// with the data received. Pointers to the device are sent on the returned channel.
-// The function takes a done signalling channel as a parameter, which when
-// triggered will stop the goroutine and close the device channel.
-// Only socket connections with uid=0 are accepted.
-func (m *Monitor) DeviceChan(done <-chan struct{}) (<-chan *Device, error) {
+// with the data received. Pointers to the device are sent on the returned
+// channel. The function takes a context as argument, which when done will stop
+// the goroutine and close the device channel. Only socket connections with
+// uid=0 are accepted.
+func (m *Monitor) DeviceChan(ctx context.Context) (<-chan *Device, error) {
 
 	var event unix.EpollEvent
 	var events [maxEpollEvents]unix.EpollEvent
@@ -169,7 +170,7 @@ func (m *Monitor) DeviceChan(done <-chan struct{}) (<-chan *Device, error) {
 	ch := make(chan *Device)
 
 	// Create goroutine to epoll the fd
-	go func(done <-chan struct{}, fd int32) {
+	go func(fd int32) {
 		// Close the epoll fd when goroutine exits
 		defer unix.Close(epfd)
 		// Close the channel when goroutine exits
@@ -178,13 +179,17 @@ func (m *Monitor) DeviceChan(done <-chan struct{}) (<-chan *Device, error) {
 		for {
 			// Poll the file descriptor
 			nevents, e := unix.EpollWait(epfd, events[:], epollTimeout)
-			if e != nil {
-				if errno, ok := e.(syscall.Errno); ok {
-					if errno == syscall.EINTR {
-						continue
-					}
-				}
+			// Ignore the EINTR error case since cancelation is performed with the
+			// context's Done() channel
+			errno, isErrno := e.(syscall.Errno)
+			if (e != nil && !isErrno) || (isErrno && errno != syscall.EINTR) {
 				return
+			}
+			// Check for done signal
+			select {
+			case <-ctx.Done():
+				return
+			default:
 			}
 			// Process events
 			for ev := 0; ev < nevents; ev++ {
@@ -196,14 +201,8 @@ func (m *Monitor) DeviceChan(done <-chan struct{}) (<-chan *Device, error) {
 					}
 				}
 			}
-			// Check for done signal
-			select {
-			case <-done:
-				return
-			default:
-			}
 		}
-	}(done, int32(fd))
+	}(int32(fd))
 
 	return ch, nil
 }
