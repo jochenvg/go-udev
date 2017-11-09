@@ -82,6 +82,13 @@ func (d *Device) Devtype() string {
 	return C.GoString(C.udev_device_get_devtype(d.ptr))
 }
 
+// Sysname returns the sysname of the udev device (e.g. ttyS3, sda1...).
+func (d *Device) Sysname() string {
+	d.lock()
+	defer d.unlock()
+	return C.GoString(C.udev_device_get_sysname(d.ptr))
+}
+
 // Syspath returns the sys path of the udev device.
 // The path is an absolute path and starts with the sys mount point.
 func (d *Device) Syspath() string {
